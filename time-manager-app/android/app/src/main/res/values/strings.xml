@@ -1,0 +1,7 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">惜时手账</string>
+    <string name="title_activity_main">惜时手账</string>
+    <string name="package_name">com.timemanager.app</string>
+    <string name="custom_url_scheme">com.timemanager.app</string>
+    <string name="widget_description">显示今日任务列表，点击直接进入计时</string></resources>

@@ -1,0 +1,429 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="惜时手账">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/icon-192.svg">
+  <link rel="stylesheet" href="./css/style.css">
+  <title>惜时手账</title>
+</head>
+<body>
+  <div id="app">
+    <!-- ===== 计时页 ===== -->
+    <section id="page-timer" class="page">
+      <header class="page-header timer-header">
+        <div>
+          <h1>惜时手账</h1>
+          <p class="subtitle" id="today-date"></p>
+        </div>
+        <div class="timer-header-stats">
+          <div class="ths-item"><span id="today-minutes">0</span><small>分钟</small></div>
+          <div class="ths-item"><span id="today-count">0</span><small>次</small></div>
+        </div>
+      </header>
+
+      <!-- 计时中状态 -->
+      <div id="timer-running" class="timer-state hidden">
+        <div class="timer-lock-notice">[锁] 计时中，已锁定屏幕，无法切换应用</div>
+        <div class="pomodoro-status hidden" id="pomodoro-status">
+          <span id="pomo-phase">工作中</span>
+          <span class="pomo-dot">·</span>
+          <span>第 <span id="pomo-count">1</span> 个番茄</span>
+        </div>
+        <div class="timer-circle-wrap">
+          <div class="timer-circle">
+            <svg viewBox="0 0 200 200" class="timer-svg">
+              <circle cx="100" cy="100" r="90" fill="none" stroke="var(--bg-tertiary)" stroke-width="12"/>
+              <circle id="timer-progress" cx="100" cy="100" r="90" fill="none" stroke="var(--accent)" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="565.48" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
+            </svg>
+            <div class="timer-display">
+              <span id="timer-time">00:00</span>
+              <span id="timer-app-name" class="timer-app-label"></span>
+            </div>
+          </div>
+        </div>
+        <div class="timer-actions">
+          <button id="btn-finish" class="btn btn-primary btn-large">结束计时</button>
+          <button id="btn-skip-break" class="btn btn-secondary hidden">跳过休息</button>
+          <button id="btn-cancel" class="btn btn-ghost">取消</button>
+        </div>
+      </div>
+
+      <!-- 设置计时状态 -->
+      <div id="timer-setup" class="timer-state">
+        <!-- 模式切换 -->
+        <div class="mode-switch-wrap">
+          <div class="mode-switch">
+            <button class="mode-btn active" data-mode="normal">正向计时</button>
+            <button class="mode-btn" data-mode="pomodoro">番茄钟</button>
+          </div>
+        </div>
+
+        <!-- 分类卡片选择 -->
+        <div class="select-section">
+          <div class="select-label">选择分类</div>
+          <div id="category-cards" class="category-cards"></div>
+        </div>
+
+        <!-- 活动标签选择 -->
+        <div class="select-section" id="activity-section" style="display:none;">
+          <div class="select-label">选择活动</div>
+          <div id="activity-tags" class="activity-tags"></div>
+        </div>
+
+        <!-- 关联任务 -->
+        <div class="select-section" id="task-section" style="display:none;">
+          <div class="select-label">关联任务（可选）</div>
+          <select id="task-select" class="form-select">
+            <option value="">不关联任务</option>
+          </select>
+        </div>
+
+        <!-- 时长选择 -->
+        <div class="select-section" id="duration-section">
+          <div class="select-label">时长（分钟）</div>
+          <div class="duration-picker">
+            <button class="dur-btn" data-min="15">15</button>
+            <button class="dur-btn selected" data-min="30">30</button>
+            <button class="dur-btn" data-min="45">45</button>
+            <button class="dur-btn" data-min="60">60</button>
+            <button class="dur-btn" data-min="90">90</button>
+            <button class="dur-btn" data-min="120">120</button>
+          </div>
+          <div class="custom-duration">
+            <input type="number" id="custom-min" placeholder="自定义分钟" min="1" max="480">
+          </div>
+        </div>
+
+        <button id="btn-start" class="btn btn-primary btn-large btn-start">开始计时</button>
+      </div>
+    </section>
+
+    <!-- ===== 待办页 ===== -->
+    <section id="page-todo" class="page active">
+      <header class="page-header">
+        <h1>待办清单</h1>
+        <button id="btn-add-todo" class="btn btn-small" style="position:absolute;top:20px;right:16px;">+ 新建</button>
+      </header>
+      <div class="todo-tabs">
+        <button class="todo-tab active" data-filter="day">日</button>
+        <button class="todo-tab" data-filter="week">周</button>
+        <button class="todo-tab" data-filter="month">月</button>
+      </div>
+      <div id="calendar-view" class="calendar-view">
+        <div class="calendar-header">
+          <button id="cal-prev">‹</button>
+          <span class="calendar-title" id="cal-title"></span>
+          <button id="cal-next">›</button>
+        </div>
+        <div class="calendar-grid" id="cal-grid"></div>
+      </div>
+      <div id="goal-progress-section" class="goal-progress-section">
+        <div class="goal-progress-title">今日目标</div>
+        <div id="goal-progress-list"></div>
+      </div>
+      <div id="todo-list" class="todo-list">
+        <p class="empty-tip">暂无待办，点右上角新建</p>
+      </div>
+      <div class="todo-filter-bar">
+        <div class="tfb-group">
+          <span class="tfb-label">显示</span>
+          <button class="tfb-btn active" data-show="pending">未完成</button>
+          <button class="tfb-btn" data-show="all">全部</button>
+          <button class="tfb-btn" data-show="done">已完成</button>
+        </div>
+        <div class="tfb-group">
+          <span class="tfb-label">排序</span>
+          <button class="tfb-btn active" data-sort="time">按时间</button>
+          <button class="tfb-btn" data-sort="priority">按重要</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 记录页 ===== -->
+    <section id="page-records" class="page">
+      <header class="page-header">
+        <h1>时间线</h1>
+        <button id="btn-add-record" class="btn btn-small" style="position:absolute;top:20px;right:16px;">+ 补录</button>
+      </header>
+      <div id="records-list" class="timeline">
+        <p class="empty-tip">暂无记录，去计时页开始吧</p>
+      </div>
+    </section>
+
+    <!-- ===== 统计页 ===== -->
+    <section id="page-stats" class="page">
+      <header class="page-header">
+        <h1>时间</h1>
+      </header>
+      <div class="stats-tabs">
+        <button class="stat-tab active" data-period="day">日</button>
+        <button class="stat-tab" data-period="week">周</button>
+        <button class="stat-tab" data-period="month">月</button>
+      </div>
+      <div class="stats-date-nav">
+        <button id="stat-prev" class="stat-nav-btn">‹</button>
+        <span id="stat-date-label" class="stat-date-label">今天</span>
+        <button id="stat-next" class="stat-nav-btn">›</button>
+      </div>
+      <div id="stats-content">
+        <div class="stats-overview">
+          <div class="stat-card">
+            <span class="stat-card-value" id="stat-total">0</span>
+            <span class="stat-card-label">总时长(分钟)</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-value" id="stat-count">0</span>
+            <span class="stat-card-label">记录次数</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-value" id="stat-pomo">0</span>
+            <span class="stat-card-label">番茄数</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-value" id="stat-avg">0</span>
+            <span class="stat-card-label">平均(分钟)</span>
+          </div>
+        </div>
+        <div class="chart-section" id="cs-goal"><h3>目标进度</h3>
+          <div id="stats-goal-progress-list" class="goal-progress-list"></div>
+        </div>
+        <div class="chart-section" id="cs-task"><h3>任务进度</h3>
+          <div id="task-progress-list" class="task-progress-list"></div>
+        </div>
+        <div class="chart-section" id="cs-trend"><h3>时长趋势</h3>
+          <canvas id="trend-chart" width="340" height="200"></canvas>
+        </div>
+        <div class="chart-section" id="cs-pie"><h3>分类占比</h3>
+          <div class="pie-chart-wrap">
+            <canvas id="pie-chart" width="200" height="200"></canvas>
+            <div id="pie-legend" class="pie-legend"></div>
+          </div>
+        </div>
+      <div class="chart-section" id="cs-event"><h3>事件统计</h3><div id="event-stats-list" class="event-stats-list"></div></div><div class="chart-section" id="cs-records"><h3>详细记录</h3><div id="stats-records-list" class="stats-records-list"></div></div></div></section>
+
+    <!-- ===== 设置页 ===== -->
+    <section id="page-settings" class="page">
+      <header class="page-header">
+        <h1>设置</h1>
+      </header>
+      <div class="settings-section">
+        <h3>分类与活动</h3>
+        <div id="settings-cat-list" class="settings-cat-list"></div>
+        <div class="add-cat-row">
+          <input type="text" id="new-cat-name" placeholder="新分类名称">
+          <input type="color" id="new-cat-color" value="#007AFF" style="width:40px;padding:2px;">
+          <button id="btn-add-cat" class="btn btn-small">添加</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>任务规划</h3>
+        <div id="settings-task-list" class="settings-task-list"></div>
+        <div class="add-task-row">
+          <input type="text" id="new-task-name" placeholder="任务名称">
+          <select id="new-task-cat" class="form-select" style="padding:8px;font-size:13px;"></select>
+          <input type="number" id="new-task-hours" placeholder="预计小时" min="0.5" step="0.5" style="width:80px;">
+          <button id="btn-add-task" class="btn btn-small">添加</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>番茄钟设置</h3>
+        <div class="pomo-config">
+          <div class="config-row">
+            <label>工作时长(分钟)</label>
+            <input type="number" id="pomo-work" min="1" max="120">
+          </div>
+          <div class="config-row">
+            <label>短休息(分钟)</label>
+            <input type="number" id="pomo-short" min="1" max="60">
+          </div>
+          <div class="config-row">
+            <label>长休息(分钟)</label>
+            <input type="number" id="pomo-long" min="1" max="120">
+          </div>
+          <div class="config-row">
+            <label>长休息间隔(个)</label>
+            <input type="number" id="pomo-interval" min="2" max="10">
+          </div>
+          <button id="btn-save-pomo" class="btn btn-primary btn-small" style="width:100%;margin-top:8px">保存设置</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>数据管理</h3>
+        <button id="btn-export" class="btn btn-secondary">导出数据(JSON)</button>
+        <button id="btn-clear" class="btn btn-danger">清空所有记录</button>
+      </div>
+      <div class="settings-section">
+        <h3>关于</h3>
+        <p class="about-text">惜时手账 <span id="about-version">v6.5.1</span><br>本地存储，数据不上传</p>
+      </div>
+    </section>
+
+    <!-- ===== 底部导航 ===== -->
+    <nav class="bottom-nav">
+      <button class="nav-item" data-page="timer">
+        <span class="nav-icon">⏱</span>
+        <span class="nav-label">计时</span>
+      </button>
+      <button class="nav-item active" data-page="todo">
+        <span class="nav-icon">✅</span>
+        <span class="nav-label">待办</span>
+      </button>
+      
+      <button class="nav-item" data-page="stats">
+        <span class="nav-icon">统计</span>
+        <span class="nav-label">时间</span>
+      </button>
+      <button class="nav-item" data-page="settings">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">设置</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- 快捷指令接收提示 -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- 记录编辑弹窗 -->
+  <div id="record-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="modal-title">添加记录</h3>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>分类</label>
+          <select id="modal-category" class="modal-input"></select>
+        </div>
+        <div class="form-group">
+          <label>活动</label>
+          <input type="text" id="modal-app" class="modal-input" placeholder="活动名称">
+        </div>
+        <div class="form-group">
+          <label>日期</label>
+          <input type="date" id="modal-date" class="modal-input">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>开始时间</label>
+            <input type="time" id="modal-start" class="modal-input">
+          </div>
+          <div class="form-group">
+            <label>结束时间</label>
+            <input type="time" id="modal-end" class="modal-input">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>备注</label>
+          <input type="text" id="modal-note" class="modal-input" placeholder="可选">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-secondary">取消</button>
+        <button id="modal-save" class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- 补录任务选择弹窗 -->
+  <div id="quick-record-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>选择任务补录</h3>
+      <div id="quick-record-time" style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;text-align:center;"></div>
+      <div id="quick-record-list" class="quick-record-list"></div>
+      <div class="modal-actions">
+        <button id="quick-record-cancel" class="btn btn-secondary">取消</button>
+        <button id="quick-record-custom" class="btn btn-secondary">手动填写</button>
+      </div>
+    </div>
+  </div>
+
+<!-- 待办编辑弹窗 -->
+  <div id="todo-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="todo-modal-title">新建待办</h3>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>待办内容</label>
+          <input type="text" id="todo-title" class="modal-input" placeholder="要做什么？">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>分类</label>
+            <select id="todo-category" class="modal-input"></select>
+          </div>
+          <div class="form-group">
+            <label>优先级</label>
+            <select id="todo-priority" class="modal-input">
+              <option value="none">无</option>
+              <option value="low">低</option>
+              <option value="medium">中</option>
+              <option value="high">高</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>截止日期（可选）</label>
+            <input type="date" id="todo-duedate" class="modal-input">
+          </div>
+          <div class="form-group">
+            <label>截止时间</label>
+            <input type="time" id="todo-duetime" class="modal-input">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>重复</label>
+            <select id="todo-repeat" class="modal-input">
+              <option value="none">不重复</option>
+              <option value="daily">每天</option>
+              <option value="weekly">每周</option>
+              <option value="monthly">每月</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>父任务（子任务）</label>
+            <select id="todo-parent" class="modal-input">
+              <option value="">无（顶级任务）</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" id="todo-repeat-days-group" style="display:none;">
+          <label>重复日（每周）</label>
+          <div class="weekday-selector">
+            <label class="weekday-btn"><input type="checkbox" value="1"><span>一</span></label>
+            <label class="weekday-btn"><input type="checkbox" value="2"><span>二</span></label>
+            <label class="weekday-btn"><input type="checkbox" value="3"><span>三</span></label>
+            <label class="weekday-btn"><input type="checkbox" value="4"><span>四</span></label>
+            <label class="weekday-btn"><input type="checkbox" value="5"><span>五</span></label>
+            <label class="weekday-btn"><input type="checkbox" value="6"><span>六</span></label>
+            <label class="weekday-btn"><input type="checkbox" value="0"><span>日</span></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>关联任务（可选）</label>
+          <select id="todo-task" class="modal-input">
+            <option value="">不关联</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>备注</label>
+          <input type="text" id="todo-note" class="modal-input" placeholder="可选">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="todo-modal-cancel" class="btn btn-secondary">取消</button>
+        <button id="todo-modal-save" class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/app.js"></script>
+</body>
+</html>

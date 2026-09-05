@@ -1,0 +1,39 @@
+# 大文件与环境
+android-sdk/
+jdk/
+node_modules/
+apk_check/
+
+# 构建产物
+time-manager-app/android/app/build/
+time-manager-app/android/.gradle/
+time-manager-app/android/build/
+time-manager-app/node_modules/
+time-manager-app/www/index.html
+*.apk
+*.aab
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 临时文件
+*.log
+*.tmp
+
+# 临时修复脚本
+fix_*.js
+fix_*.ps1
+add_widget.js
+rewrite_stats.js
+insert_now_gap.ps1
+
+android-cmdtools.zip
+
+jdk.zip
